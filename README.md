@@ -1,6 +1,5 @@
 <p align="center">
-
-  <a href="https://github.com/i-am-fyre/MaNGOS-Discord-Register-Bot" target="_blank">
+  <a href="https://github.com/i-am-fyre/MaNGOS-Discord-Admin" target="_blank">
     <img height="150" alt="default bot banner" src="/img/default-bot-banner.svg"/>
   </a>
 </p>
@@ -9,96 +8,224 @@
     <img src="https://img.shields.io/discord/286167585270005763?label=Discord&logo=Discord&logoColor=ffffff&style=for-the-badge" alt="Discord">
   </a>
 </p>
- 
-MaNGOS Discord Registration Bot is a project aiming to provide server administrators with an easy way to register new players to their MaNGOS server through their Discord channel.
 
+# MaNGOS-Based Server Discord Admin
 
-# Pre-alpha version :abc:
+MaNGOS-Based Server Discord Admin (formerly *MaNGOS Discord Register Bot*) connects your MaNGOS server to your
+Discord community. Players register and manage their accounts, see who's online, look up characters in the
+armory, and get told when world events start. Staff handle GM tickets in a Discord forum, broadcast
+announcements, and run restarts and bans without logging in to the server.
 
-MaNGOS-Discord-Register-Bot is currently in an untested pre-alpha state. That means that there may be a lot of bugs, issues, and security holes.
-I take no responsibility for any damage or lost data caused by using this bot.
+It works with every MaNGOS core: **Zero** (1.12), **One** (2.4.3), **Two** (3.3.5a), **Three** (4.3.4) and
+**Four** (5.4.8).
 
-DISCLAIMER:
-- Use at your own risk!
-- Always back-up data before testing. 
-- Test on a local server first before using it on a public server. 
-- Test using data that is not important. 
-- Test with a small group first. 
+**Make it yours.** Out of the box the bot calls itself **Ask MaNGOS**. Give it your server's own identity
+(name, accent colour and avatar) in the `[identity]` section of `config.toml`. The bot applies the name as
+its nickname in your server, and uses it in embeds and announcements.
 
-Please feel free to contribute to the project, and report any issues you may encounter.
+> **Status:** beta. Test on a local server with a backup of your databases before using it in production.
 
+## Features 🚀
 
-# Features :rocket:
-- Easy setup.
-- Easy integration.
-- Fast.
-- Customizable.
+**For players**
+- **Registration panel**: a message with Register / How to connect / My account buttons that keeps working
+  across restarts and shows live server status.
+- **Safe sign-ups**: the same rules as the server itself (16-character limits, upper-casing, SHA1 hash).
+  Includes a confirm-password field, or bot-generated passwords if you prefer. Also checks Discord account age,
+  enforces one account per person, adds cooldowns and pauses sign-ups during mass sign-up raids.
+- **`/account`**: view your account, characters and ban status; change your password; link an account made
+  before the bot; choose whether you appear in the armory.
+- **`/status` and `/online`**: is the server up, how many people are playing, and the faction/class breakdown.
+- **`/armory`**: a character card image (a paper-doll layout like the in-game character pane) plus a gear list
+  linked to Wowhead for your expansion. An **Inspect an item** menu shows full tooltips with stats.
+- **`/leaderboard`**: the Hall of Legends, ranking characters by level, time played, gold or honorable kills.
+- **`/events`**: world events happening now and coming up, read from your `game_event` table.
 
+**For staff**
+- **GM tickets in a forum channel**: every in-game ticket becomes a forum post with **Claim**, **Respond**
+  (mails the player in game and closes the ticket) and **Close** buttons, plus Open / Claimed / Closed tags.
+- **Event announcements**: posts when an event starts, a reminder before it ends, and a post when it ends, with
+  varied wording. Also creates real **Discord Scheduled Events**, so players can click "Interested".
+- **`/admin announce`**: post to Discord and broadcast in game at the same time.
+- **`/admin restart | shutdown | cancel`**: countdown restarts with a Discord notice.
+- **`/mod kick`, `/admin ban | unban`**: ban durations are checked strictly, so a typo can't become a
+  permanent ban.
+- **Status alerts, presence and a voice-channel player counter** (`🟢 Online: 42`).
+- **Audit log channel**: registrations, links, password changes, bans and ticket replies.
+- **`/admin check`**: one command that tests the databases, SOAP, channels and permissions.
 
-# Demo :video_game:
-See in action: https://youtu.be/KKZOh-gz2AE
+## How it talks to your server
 
+| What | How | Why |
+|---|---|---|
+| Reading (status, characters, tickets, events, items) | MySQL, read-only | Fast and needs no server-side changes |
+| Creating accounts, changing passwords | MySQL, exactly as `AccountMgr` does | mangosd writes every SOAP command, *including passwords*, to its log |
+| Ticket replies/closing, announcements, kicks, bans, restarts | SOAP | mangosd keeps tickets and sessions in memory; writing to the tables directly would be ignored or overwritten |
 
-# Getting Started :1234:
+SOAP is optional. Without it, everything still works except the actions in the last row.
 
-## Cloning this project :point_right:
+## Getting started 🔢
 
-```git
-git clone https://github.com/i-am-fyre/MaNGOS-Discord-Register-Bot
-```
-## Creating a Discord Bot :hammer_and_wrench:
-I used this website: https://discordpy.readthedocs.io/en/stable/discord.html
+### 1. Install
+You need **Python 3.11 or newer**, **git**, and network access from the bot to your MySQL/MariaDB server (and
+to SOAP, if you use it). Running the bot on the same machine as the server is simplest.
 
-## Initializing all the packages :package:
-
-MaNGOS-Discord-Register-Bot is written in Python, so you need to install all pre-requisites. (I've included the commands for setting up a virtual environment as well, omit if not needed.)
-
-```python
-python3 -m venv ./.venv
-source ./.venv/bin/activate
+**Linux / macOS**
+```bash
+git clone https://github.com/i-am-fyre/MaNGOS-Discord-Admin.git
+cd MaNGOS-Discord-Admin
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
-## Setting up the bot :robot:
-1. Open 'config.ini'.
-2. Follow all instructions for each config value.
-3. Save and close.
-4. Once bot is added to your server, type in your bot's command prefix followed by the word 'summon'.
-    Example: ;summon
-5. Your bot should post the registration embed and links!
 
-Within your Discord server, users can also type: /register
-This will also open up the registration modal.
+**Windows (PowerShell)**
+```powershell
+git clone https://github.com/i-am-fyre/MaNGOS-Discord-Admin.git
+cd MaNGOS-Discord-Admin
+py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+If PowerShell refuses to run `Activate.ps1`, run
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or call `.venv\Scripts\python.exe` directly.
 
+### 2. Create the Discord application
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications), create an application and
+   add a **Bot**. Copy the token. Don't enable any privileged intents; the bot doesn't need them.
+2. Invite it with this URL (replace `YOUR_CLIENT_ID`):
+   `https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot+applications.commands&permissions=283803503616`
 
-# Support :computer:
+   That grants View Channels, Send Messages, Embed Links, Attach Files, Read Message History, Send Messages in
+   Threads, Manage Roles (to give the Player role), Manage Events (for scheduled events) and Change Nickname
+   (to use your `[identity]` name). **Don't use Administrator.**
+3. Give the bot two extra permissions **on specific channels only** (Edit Channel → Permissions):
+   - the ticket **forum**: *Manage Threads* (archive/lock/tag posts) and *Manage Channel* (to create the tags once),
+   - the player-counter **voice channel**: *Manage Channel*.
+4. Drag the bot's role **above** the Player role so it can assign it.
 
-## Ask a question about MaNGOS-Discord-Register-Bot :question:
+### 3. Create a database user
+Don't use your `mangos`/root login. [`docs/database-user.sql`](docs/database-user.sql) creates a user that can
+read only what the bot needs and write only `account` (three columns) and `realmcharacters`.
 
-You can ask questions, and participate in discussions about MaNGOS-Discord-Register-Bot in the official MaNGOS Discord channel (Use the #mangos-tools channel!).
+### 4. (Optional) Enable SOAP
+In `mangosd.conf` set `SOAP.Enabled = 1` and keep `SOAP.IP = 127.0.0.1`. Create a dedicated account with
+gmlevel 3 for the bot (`account create DISCORDBOT <long-password>` then `account set gmlevel DISCORDBOT 3`).
+SOAP is plain HTTP with full console rights, so never expose it to the internet. Run the bot on the same
+machine, or reach it through an SSH tunnel or VPN.
+
+### 5. Configure
+```bash
+cp config.example.toml config.toml      # Windows: copy config.example.toml config.toml
+cp .env.example .env                    # Windows: copy .env.example .env
+```
+Put the token and passwords in `.env`. Fill in `config.toml`: your server ID, the bot's `[identity]`, channels,
+roles and realms. Every setting is explained in the file. Then validate it and start the bot (with the virtual
+environment active):
+
+```bash
+python main.py --check
+python main.py
+```
+
+In Discord, run **`/admin check`**, then **`/admin panel`** in your registration channel.
+
+### 6. Keep it running
+**Linux (systemd).** Save this as `/etc/systemd/system/mangos-discord-admin.service`, adjusting the user and
+paths. Then run `sudo systemctl enable --now mangos-discord-admin`.
+```ini
+[Unit]
+Description=MaNGOS Discord Admin bot
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+User=mangos
+WorkingDirectory=/opt/MaNGOS-Discord-Admin
+ExecStart=/opt/MaNGOS-Discord-Admin/.venv/bin/python main.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+The bot reads `config.toml` and `.env` from its working directory, and logs to `data/logs/bot.log`.
+
+**Windows.** Create a Task Scheduler task that runs at startup:
+- **Program:** `C:\path\to\MaNGOS-Discord-Admin\.venv\Scripts\python.exe`
+- **Arguments:** `main.py`
+- **Start in:** the `MaNGOS-Discord-Admin` folder
+
+### Updating
+```bash
+git pull
+pip install -r requirements.txt   # with the virtual environment active
+```
+Then restart the bot. Clones made under the old *MaNGOS-Discord-Register-Bot* name still work, because GitHub
+redirects them. To point yours at the new name, run
+`git remote set-url origin https://github.com/i-am-fyre/MaNGOS-Discord-Admin.git`.
+
+**Armory icons (optional):** set `armory.dbc_path` to the server's extracted `dbc` folder. The bot reads
+`ItemDisplayInfo.dbc` to find each item's icon name. Icon images are downloaded from `armory.icon_url` (by
+default Wowhead's icon CDN) and cached in `data/icons`. Set `icon_url = ""` to turn downloads off.
+
+## Commands
+
+| Command | Who | What it does |
+|---|---|---|
+| `/register`, `/connect` | everyone | Create an account; connection guide |
+| `/account info · password · link · privacy · unlink` | everyone | Manage your linked game account |
+| `/status`, `/online`, `/events` | everyone | Server status, who's online, world events |
+| `/armory <character>`, `/leaderboard <category>` | everyone | Character cards and rankings |
+| `/mod tickets · whois · kick · serverinfo` | staff roles | Day-to-day moderation |
+| `/admin panel · check · announce · restart · shutdown · cancel · ban · unban · unlink · event-announce · sync` | admin roles | Server administration |
+
+`/mod` and `/admin` are hidden from members without Manage Messages / Manage Server, and the bot also checks
+the role IDs in `config.toml` every time a command runs.
+
+## Security notes 🔒
+- Secrets live in `.env` or environment variables (`"env:NAME"` in the config). Never put them in `config.toml`.
+  `config.toml`, `.env` and `data/` are git-ignored.
+- **If a bot token has ever been in a tracked file, reset it** in the Developer Portal.
+- Accounts with gmlevel > 0 can't be linked, registered or have their password changed from Discord
+  (`allow_gm_accounts = false`).
+- The bot never logs passwords or SOAP command arguments. Player-written text (tickets, names) is escaped
+  before it's shown in Discord.
+- Hidden characters get the same "not found" reply as characters that don't exist.
+
+## Upgrading from the Register Bot
+The old `config.ini` and `;summon` command are gone. Copy your values into `config.toml` (`[Server]` →
+`[server]`, `[Database]` → `[database]` and `[[realm]]`), move the token to `.env`, and use `/admin panel`
+instead of `;summon`. There's no message purge any more: the bot edits its panel in place.
+
+## Development
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+The tests cover account hashing (against Realm_DB's default accounts), the SOAP client (against a fake
+mangosd), event scheduling, DBC parsing, config validation, storage, the card renderer, and a smoke test that
+builds the whole bot and checks every command and permission.
+
+## Support 💻
+Ask questions in the official MaNGOS Discord (use **#mangos-tools**):
 
 <a href="https://discord.gg/CzXcBXq">
 <img src="https://img.shields.io/discord/286167585270005763?label=Discord&logo=Discord&logoColor=ffffff&style=for-the-badge" alt="Discord">
 </a>
 
-## Create a bug report :bug:
+- [Report a bug](https://github.com/i-am-fyre/MaNGOS-Discord-Admin/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5B%3Abug%3A%5D+)
+- [Request a feature](https://github.com/i-am-fyre/MaNGOS-Discord-Admin/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5B%3Asparkles%3A%5D+)
 
-If you observe an error or encounter a bug, please create an issue on the GitHub repository. You can use the GitHub issue tracker to [submit a bug report](https://github.com/i-am-fyre/MaNGOS-Discord-Register-Bot/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5B%3Abug%3A%5D+). All bug reports are valuable and will help all MaNGOS-Discord-Register-Bot users.
-
-## Submit a feature request :sparkles:
-
-If you want to suggest a new feature, please create an issue on the GitHub repository. You can use the Github issue tracker to [submit a feature request](https://github.com/i-am-fyre/MaNGOS-Discord-Register-Bot/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5B%3Asparkles%3A%5D+).
-
-If you find a similar feature request, feel free to leave a "thumbs up" to show support.
-
-
-# Contributing :tada:
-
-MaNGOS-Discord-Register-Bot is an open-source project. Our goal is to provide high quality tools for the MaNGOS platform to enhance community experiences and promote the work of our hard working developer teams. We are committed to a fully transparent development process and appreciate highly any contributions. Whether you are helping us fix bugs, proposing new features, improving our documentation or spreading the word - we would love to have you as part of the MaNGOS-Discord-Register-Bot community.
-
-## Contributors :people_holding_hands:
+## Contributing 🎉
+This is an open-source project, and contributions of any size are welcome: bug fixes, features, docs, testing
+on other cores, or spreading the word.
 
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/i-am-fyre/"><img src="https://avatars.githubusercontent.com/u/58180427?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Fyre</b></sub></a><br /><a href="https://github.com/i-am-fyre/MaNGOS-Discord-Register-Bot/commits?author=i-am-fyre" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/i-am-fyre/"><img src="https://avatars.githubusercontent.com/u/58180427?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Fyre</b></sub></a><br /><a href="https://github.com/i-am-fyre/MaNGOS-Discord-Admin/commits?author=i-am-fyre" title="Code">💻</a></td>
   </tr>
 </table>
+
+*World of Warcraft and related names are trademarks of Blizzard Entertainment, Inc. This project is not
+affiliated with or endorsed by Blizzard.*

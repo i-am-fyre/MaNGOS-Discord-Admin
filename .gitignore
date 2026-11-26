@@ -1,2 +1,13 @@
-.venv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets and local configuration: never commit these.
+.env
+config.toml
 secret.ini
+config.ini
+
+# Runtime state (SQLite, logs, icon cache).
+data/
