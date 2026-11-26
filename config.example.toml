@@ -67,8 +67,8 @@ timeout = 10
 id = 1                        # realmlist.id
 name = "MaNGOS"                # realmlist.name
 core = "zero"                 # zero | one | two | three | four
-characters_db = "character0"
-world_db = "mangos0"
+characters_db = "character0"  # CharacterDatabaseInfo in mangosd.conf (default characterN: 0 Zero ... 4 Four)
+world_db = "mangos0"          # WorldDatabaseInfo in mangosd.conf (default mangosN)
 world_address = ""            # host:port for up/down checks; empty = use realmlist.address/port
 # Optional link overrides ({id} is replaced). Defaults point at Wowhead for your expansion.
 # item_link = "https://www.wowhead.com/classic/item={id}"

@@ -103,10 +103,14 @@ account.
    - Save it for now. In [section 5](#5-configure) you'll paste it into the `.env` file as `DISCORD_TOKEN=...`.
    - The token is the bot's password: anyone who has it controls your bot. Never put it in `config.toml`, a
      screenshot or a chat. If it leaks or you lose it, click **Reset Token** again and update `.env`.
-4. **Bot settings** (same page):
-   - Turn **Public Bot** off, so only you can add the bot to servers. If the portal won't save that, first set
-     **Installation → Install Link** to **None**.
-   - Leave all three **Privileged Gateway Intents** off. The bot doesn't need them.
+4. **Make the bot private**, so only you can add it to servers. Do these in this order, because Discord won't
+   let a private bot keep its default install link:
+   - Open the **Installation** page, set **Install Link** to **None**, and click **Save Changes**.
+   - Back on the **Bot** page, turn **Public Bot** off and save.
+   - On the same page, leave all three **Privileged Gateway Intents** off. The bot doesn't need them.
+
+   The invite link below still works for you afterwards. "None" only removes the *Add App* button on the
+   bot's profile.
 5. **Invite the bot to your server.** Paste this link into your browser, replacing `YOUR_APPLICATION_ID` with
    the Application ID you copied above:
    ```
@@ -128,8 +132,45 @@ account.
    lets a bot hand out roles that are below its own.
 
 ### 3. Create a database user
-Don't use your `mangos`/root login. [`docs/database-user.sql`](docs/database-user.sql) creates a user that can
-read only what the bot needs and write only `account` (three columns) and `realmcharacters`.
+Don't give the bot your `root` or `mangos` login. [`docs/database-user.sql`](docs/database-user.sql) creates a
+`discordbot` user that can only read what the bot needs, and only write new accounts and password changes.
+**Edit the script before you run it:**
+
+1. **Make a private copy**, so your password never ends up in git (`*.local.sql` files are git-ignored):
+   ```bash
+   cp docs/database-user.sql database-user.local.sql      # Windows: copy docs\database-user.sql database-user.local.sql
+   ```
+2. **Open the copy and find-and-replace:**
+
+   | Find | Replace with |
+   |---|---|
+   | `change-me` | a long random password. Put the same one in `.env` as `MANGOS_DB_PASSWORD=` |
+   | `character0` | your characters database name |
+   | `mangos0` | your world database name |
+   | `realmd` | your login database name (only if it isn't `realmd`) |
+
+   Your database names are in `mangosd.conf`, as the last part of `CharacterDatabaseInfo` and
+   `WorldDatabaseInfo`. For example, `"127.0.0.1;3306;root;mangos;character0"` means `character0`. The defaults
+   are `characterN` and `mangosN`, where N is 0 for Zero, 1 for One, and so on up to 4 for Four. The login
+   database is `LoginDatabaseInfo` in `realmd.conf`, normally `realmd`.
+
+   **Several realms?** Copy the characters and world blocks in the script once per realm.
+3. **Run the copy as a MySQL admin** (such as `root`):
+   ```bash
+   mysql -u root -p < database-user.local.sql
+   ```
+   Or open it in HeidiSQL, MySQL Workbench or phpMyAdmin and run the whole file. To check it worked, run
+   `SHOW GRANTS FOR 'discordbot'@'127.0.0.1';`.
+4. **Match `config.toml` to it.** Under `[database]`, keep `host = "127.0.0.1"` and `user = "discordbot"`. In
+   each `[[realm]]`, set `characters_db` and `world_db` to the names you used above.
+
+**Bot on a different machine from MySQL?** Replace every `127.0.0.1` in your copy of the script with the bot
+machine's IP address, and set `[database] host` to the MySQL server's address. MySQL must accept network
+connections from that machine (check `bind-address` in the MySQL config, and your firewall). Never open MySQL
+to the whole internet.
+
+**"Access denied for user 'discordbot'@'…'"** in `/admin check` or the log: the part after `@` is the address
+MySQL sees the bot connecting from. Create the user for that address instead.
 
 ### 4. (Optional) Enable SOAP
 In `mangosd.conf` set `SOAP.Enabled = 1` and keep `SOAP.IP = 127.0.0.1`. Create a dedicated account with
