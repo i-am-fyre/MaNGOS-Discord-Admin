@@ -40,7 +40,7 @@ announcements = 0             # /admin announce posts here
 status = 0                    # server down/up alerts and restart notices
 audit_log = 0                 # private staff channel: registrations, bans, ticket replies...
 events = 0                    # world event announcements (falls back to announcements)
-tickets_forum = 0             # a *forum* channel; each GM ticket becomes a post
+tickets_forum = 0             # a staff-only *Forum* channel; each GM ticket becomes a post
 player_count_voice = 0        # optional voice channel renamed to "🟢 Online: 42"
 
 # Login (realmd) database. Use a dedicated MySQL user; see docs/database-user.sql.
@@ -88,7 +88,7 @@ min_password_length = 8       # 4-16 (16 is the game client's maximum)
 max_accounts_per_user = 1     # registered + linked accounts per Discord user
 min_account_age_days = 7      # Discord account age required (stops throwaway alts)
 min_member_age_minutes = 10   # time since joining your Discord
-cooldown_minutes = 5          # between registration attempts per user
+cooldown_minutes = 5          # wait between successful registrations (only matters if max_accounts_per_user > 1)
 global_limit_per_hour = 30    # pauses sign-ups (and alerts the audit log) during raids
 required_role = 0             # e.g. a "Verified" role; 0 = anyone
 allow_linking = true          # /account link for accounts created before the bot
@@ -127,7 +127,8 @@ enabled = true
 privacy = "public"            # "public" (players can opt out) or "opt_in" (players must opt in)
 hide_gm_characters = true
 render_image = true           # paper-doll card image
-# Item icons: point dbc_path at the server's extracted dbc folder (it reads ItemDisplayInfo.dbc).
+# Icons and item effect text: point dbc_path at the server's extracted dbc folder, with forward slashes
+# (e.g. "E:/MaNGOS/data/dbc"). It reads ItemDisplayInfo.dbc (icons) and Spell.dbc (effect text).
 dbc_path = ""
 icon_field = "auto"
 # Where icon images come from ({icon} is e.g. "inv_sword_39"). Set "" to disable,

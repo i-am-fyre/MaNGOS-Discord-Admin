@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import traceback
@@ -14,10 +15,12 @@ from . import __version__, ui
 from .accounts import AccountService
 from .config import Config, RealmConfig
 from .database import Database, DatabaseError
+from .dbc import DbcError
 from .items import IconService
 from .mangos import Mangos
 from .privacy import Visibility
 from .soap import SoapAuthError, SoapClient, SoapError, SoapUnavailable
+from .spells import SpellBook
 from .storage import Storage
 
 log = logging.getLogger(__name__)
@@ -50,6 +53,8 @@ class ServerBot(discord.Bot):
         )
         self.visibility = Visibility(self)
         self.icons = IconService(self)
+        self.spells: SpellBook | None = None
+        self.spells_error: str | None = None
         self._identity_applied = False
         self._add_cogs()
 
@@ -81,6 +86,19 @@ class ServerBot(discord.Bot):
         self._http = aiohttp.ClientSession(headers={"User-Agent": f"MaNGOS-Discord-Bot/{__version__}"})
         if self.config.armory.enabled:
             await self.icons.load()
+            await self._load_spells()
+
+    async def _load_spells(self) -> None:
+        """Spell.dbc from the same folder as the icons, for item effect text."""
+        if not self.config.armory.dbc_path:
+            self.spells_error = "armory.dbc_path is not set"
+            return
+        try:
+            self.spells = await asyncio.to_thread(SpellBook.load, self.config.armory.dbc_path,
+                                                  self.config.realms[0].core)
+        except (OSError, DbcError) as exc:
+            self.spells_error = str(exc)
+            log.warning("Item effect text disabled: %s", exc)
 
     async def close(self) -> None:
         await super().close()

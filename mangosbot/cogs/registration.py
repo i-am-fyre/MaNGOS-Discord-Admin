@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+REGISTER_TRIES_PER_HOUR = 10  # attempts that reach the database, per Discord user
+
 PANEL_REGISTER = "mb:reg:register"
 PANEL_CONNECT = "mb:reg:connect"
 PANEL_ACCOUNT = "mb:reg:account"
@@ -168,10 +170,14 @@ class RegistrationCog(discord.Cog, name="Registration"):
         if len(links) >= cfg.max_accounts_per_user:
             names = ", ".join(f"**{ui.safe(l.username)}**" for l in links)
             return f"You already have an account ({names}). Use **My account** to manage it."
-        last = await self.bot.storage.last_attempt("register", member.id)
-        if cfg.cooldown_minutes and last and time.time() - last < cfg.cooldown_minutes * 60:
-            wait = int((cfg.cooldown_minutes * 60 - (time.time() - last)) // 60) + 1
-            return f"Please wait {wait} minute(s) before trying again."
+        # Only attempts that reached the database count here (typos are free), so
+        # a player can retry a taken name a few times but can't probe names in bulk.
+        if await self.bot.storage.count_attempts("register", 3600, member.id) >= REGISTER_TRIES_PER_HOUR:
+            return "Too many registration attempts. Please try again in an hour."
+        last_ok = await self.bot.storage.last_attempt("register_ok", member.id)
+        if cfg.cooldown_minutes and last_ok and time.time() - last_ok < cfg.cooldown_minutes * 60:
+            wait = int((cfg.cooldown_minutes * 60 - (time.time() - last_ok)) // 60) + 1
+            return f"You just created an account. Please wait {wait} minute(s) before creating another."
         recent = await self.bot.storage.count_attempts("register_ok", 3600)
         if recent >= cfg.global_limit_per_hour:
             if time.monotonic() - self._paused_alerted > 3600:
@@ -200,7 +206,6 @@ class RegistrationCog(discord.Cog, name="Registration"):
             if problem:
                 await ui.reply(interaction, embed=ui.warning("Can't register yet", problem))
                 return
-            await self.bot.storage.record_attempt("register", member.id)
 
             username = accounts.normalize_username(values.get("username", ""))
             err = accounts.validate_username(username, self.cfg.reserved_names)
@@ -217,8 +222,9 @@ class RegistrationCog(discord.Cog, name="Registration"):
                     err = "The two passwords don't match."
             if err:
                 await ui.reply(interaction, embed=ui.error("Let's fix that", err))
-                return
+                return  # input mistakes don't count against the player
 
+            await self.bot.storage.record_attempt("register", member.id)
             try:
                 account_id = await self.bot.accounts.create(username, password)
             except AccountExistsError:

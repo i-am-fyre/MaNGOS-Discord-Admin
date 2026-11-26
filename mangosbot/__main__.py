@@ -14,6 +14,13 @@ from dotenv import load_dotenv
 from .config import Config, ConfigError, load_config
 
 
+class _HideVoiceWarning(logging.Filter):
+    """py-cord warns that PyNaCl/davey are missing; the bot never uses voice, so it's noise."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "voice will NOT be supported" not in record.getMessage()
+
+
 def _setup_logging(config: Config) -> None:
     log_dir = config.bot.data_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -27,6 +34,7 @@ def _setup_logging(config: Config) -> None:
     root.handlers[:] = [console, file]
     if config.bot.log_level != "DEBUG":
         logging.getLogger("discord").setLevel(logging.WARNING)
+    logging.getLogger("discord.utils").addFilter(_HideVoiceWarning())
 
 
 async def _run(config: Config) -> None:

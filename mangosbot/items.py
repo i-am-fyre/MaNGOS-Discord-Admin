@@ -16,6 +16,7 @@ import discord
 from . import wow
 from .config import RealmConfig
 from .dbc import DbcError, load_item_icons
+from .spells import SpellBook
 
 if TYPE_CHECKING:
     from .bot import ServerBot
@@ -74,8 +75,14 @@ def _slot_and_type(row: dict[str, Any]) -> str:
     return " · ".join(part for part in (inv, kind) if part)
 
 
-def tooltip_lines(row: dict[str, Any], realm: RealmConfig) -> list[str]:
-    """Approximate the in-game tooltip using whichever columns this core has."""
+def tooltip_lines(row: dict[str, Any], realm: RealmConfig, spells: SpellBook | None = None) -> list[str]:
+    """Approximate the in-game tooltip using whichever columns this core has.
+
+    With ``spells`` (Spell.dbc for this realm's core), Equip/Use/Chance on hit
+    lines show the real effect text instead of a spell number.
+    """
+    if spells is not None and spells.core != realm.core:
+        spells = None
     lines: list[str] = []
     bonding = wow.BONDING.get(_int(row, "bonding"))
     if bonding:
@@ -154,7 +161,14 @@ def tooltip_lines(row: dict[str, Any], realm: RealmConfig) -> list[str]:
             continue
         trigger = wow.SPELL_TRIGGERS.get(_int(row, f"spelltrigger_{i}"), "Effect")
         link = realm.spell_link.format(id=spell) if realm.spell_link else ""
-        lines.append(f"{trigger}: [spell #{spell}]({link})" if link else f"{trigger}: spell #{spell}")
+        effect = spells.describe(spell) if spells else None
+        if effect:  # the trigger word links to the spell, the text reads like the game
+            label = f"[{trigger}]({link})" if link else trigger
+            lines.append(f"{label}: {discord.utils.escape_markdown(effect)}")
+            continue
+        name = spells.name(spell) if spells else None
+        shown = discord.utils.escape_markdown(name) if name else f"spell #{spell}"
+        lines.append(f"{trigger}: [{shown}]({link})" if link else f"{trigger}: {shown}")
 
     itemset = _int(row, "itemset")
     if itemset:
@@ -166,12 +180,13 @@ def tooltip_lines(row: dict[str, Any], realm: RealmConfig) -> list[str]:
     return lines
 
 
-def tooltip_embed(row: dict[str, Any], realm: RealmConfig, icon_url: str | None) -> discord.Embed:
+def tooltip_embed(row: dict[str, Any], realm: RealmConfig, icon_url: str | None,
+                  spells: SpellBook | None = None) -> discord.Embed:
     name, color, _ = wow.quality(item_quality(row))
     e = discord.Embed(
         title=item_name(row),
         url=item_url(realm, int(row["entry"])) or None,
-        description="\n".join(tooltip_lines(row, realm))[:4000] or None,
+        description="\n".join(tooltip_lines(row, realm, spells))[:4000] or None,
         color=color,
     )
     if icon_url:

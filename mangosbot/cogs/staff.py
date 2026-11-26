@@ -453,6 +453,10 @@ class StaffCog(discord.Cog, name="Staff"):
                 sections["Features"].append(f"{ok} Armory icons: {len(self.bot.icons.names):,} from ItemDisplayInfo.dbc")
             else:
                 sections["Features"].append(f"{warn} Armory icons off: {ui.safe(self.bot.icons.load_error or 'unknown')}")
+            if self.bot.spells is not None:
+                sections["Features"].append(f"{ok} Item effect text: {len(self.bot.spells):,} spells from Spell.dbc")
+            else:
+                sections["Features"].append(f"{warn} Item effect text off: {ui.safe(self.bot.spells_error or 'unknown')}")
         sections["Features"].append(f"{ok} Panels: {len(await self.bot.storage.panels())}")
 
         e = ui.embed("🩺 Health check", color=ui.INFO)

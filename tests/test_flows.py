@@ -1,5 +1,6 @@
 """End-to-end flows with fake Discord objects and a fake MaNGOS database."""
 
+import dataclasses
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -10,7 +11,7 @@ import pytest
 from mangosbot import accounts
 from mangosbot.accounts import AccountService
 from mangosbot.cogs.events import EventsCog
-from mangosbot.cogs.registration import RegistrationCog
+from mangosbot.cogs.registration import REGISTER_TRIES_PER_HOUR, RegistrationCog
 from mangosbot.storage import Storage
 
 UTC = timezone.utc
@@ -101,19 +102,42 @@ async def test_registration_rejections(fake_bot):
     await cog.finish_registration(young, {"username": "newbie", "password": "password1", "confirm": "password1"})
     assert "days old" in young.sent[-1].description
 
-    typo = FakeInteraction(member(user_id=3))
+    # Mistakes in the form don't start any cooldown: fix and resubmit straight away.
+    user = member(user_id=3)
+    same = FakeInteraction(user)
+    await cog.finish_registration(same, {"username": "jainaxyz", "password": "JAINAXYZ", "confirm": "JAINAXYZ"})
+    assert "same as your account name" in same.sent[-1].description
+    typo = FakeInteraction(user)
     await cog.finish_registration(typo, {"username": "jaina", "password": "password1", "confirm": "password2"})
     assert "don't match" in typo.sent[-1].description
+    fixed = FakeInteraction(user)
+    await cog.finish_registration(fixed, {"username": "jaina", "password": "password1", "confirm": "password1"})
+    assert "ready" in fixed.sent[-1].title
 
-    # The cooldown now applies to user 3, so use a fresh user for the taken-name case.
+    # Taken names can be retried, but only so many times an hour (stops name probing).
     await fake_bot.mangos.create_account("ARTHAS", "x", 0)
-    taken = FakeInteraction(member(user_id=4))
-    await cog.finish_registration(taken, {"username": "Arthas", "password": "password1", "confirm": "password1"})
-    assert "taken" in taken.sent[-1].description
+    prober = member(user_id=4)
+    form = {"username": "Arthas", "password": "password1", "confirm": "password1"}
+    for _ in range(REGISTER_TRIES_PER_HOUR):
+        taken = FakeInteraction(prober)
+        await cog.finish_registration(taken, form)
+        assert "taken" in taken.sent[-1].description
+    blocked = FakeInteraction(prober)
+    await cog.finish_registration(blocked, form)
+    assert "Too many" in blocked.sent[-1].description
 
-    retry = FakeInteraction(member(user_id=3))
-    await cog.finish_registration(retry, {"username": "jaina", "password": "password1", "confirm": "password1"})
-    assert "wait" in retry.sent[-1].description
+
+async def test_cooldown_between_successful_registrations(fake_bot):
+    reg = dataclasses.replace(fake_bot.config.registration, max_accounts_per_user=2)
+    fake_bot.config = dataclasses.replace(fake_bot.config, registration=reg)
+    cog = RegistrationCog(fake_bot)
+    user = member(user_id=5)
+    first = FakeInteraction(user)
+    await cog.finish_registration(first, {"username": "alt1", "password": "password1", "confirm": "password1"})
+    assert "ready" in first.sent[-1].title
+    second = FakeInteraction(user)
+    await cog.finish_registration(second, {"username": "alt2", "password": "password1", "confirm": "password1"})
+    assert "just created an account" in second.sent[-1].description
 
 
 async def test_event_lifecycle(fake_bot):

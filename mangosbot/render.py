@@ -186,7 +186,7 @@ def render_character_card(card: CharacterCard, font_path: str = "") -> bytes:
     stats: list[tuple[str, str]] = []
     if card.average_item_level:
         stats.append(("Item Level", f"{card.average_item_level:g}"))
-    if card.kills is not None:
+    if card.kills:
         stats.append(("Honorable Kills", f"{card.kills:,}"))
     sy = 300
     for label, value in stats:
