@@ -90,19 +90,42 @@ pip install -r requirements.txt
 If PowerShell refuses to run `Activate.ps1`, run
 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or call `.venv\Scripts\python.exe` directly.
 
-### 2. Create the Discord application
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications), create an application and
-   add a **Bot**. Copy the token. Don't enable any privileged intents; the bot doesn't need them.
-2. Invite it with this URL (replace `YOUR_CLIENT_ID`):
-   `https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot+applications.commands&permissions=283803503616`
+### 2. Create the Discord bot and add it to your server
+Open the [Discord Developer Portal](https://discord.com/developers/applications) and sign in with your Discord
+account.
 
-   That grants View Channels, Send Messages, Embed Links, Attach Files, Read Message History, Send Messages in
-   Threads, Manage Roles (to give the Player role), Manage Events (for scheduled events) and Change Nickname
-   (to use your `[identity]` name). **Don't use Administrator.**
-3. Give the bot two extra permissions **on specific channels only** (Edit Channel → Permissions):
-   - the ticket **forum**: *Manage Threads* (archive/lock/tag posts) and *Manage Channel* (to create the tags once),
-   - the player-counter **voice channel**: *Manage Channel*.
-4. Drag the bot's role **above** the Player role so it can assign it.
+1. **Create the application.** Click **New Application**, give it a name (for example your server's name) and
+   click **Create**.
+2. **Copy the Application ID.** On the **General Information** page, copy the **Application ID** and keep it
+   handy for the invite link below. (Discord also calls this the *Client ID*.)
+3. **Get the bot token.** Open the **Bot** page from the left-hand menu:
+   - Click **Reset Token**, confirm, then **Copy**. Discord shows the token only once.
+   - Save it for now. In [section 5](#5-configure) you'll paste it into the `.env` file as `DISCORD_TOKEN=...`.
+   - The token is the bot's password: anyone who has it controls your bot. Never put it in `config.toml`, a
+     screenshot or a chat. If it leaks or you lose it, click **Reset Token** again and update `.env`.
+4. **Bot settings** (same page):
+   - Turn **Public Bot** off, so only you can add the bot to servers. If the portal won't save that, first set
+     **Installation → Install Link** to **None**.
+   - Leave all three **Privileged Gateway Intents** off. The bot doesn't need them.
+5. **Invite the bot to your server.** Paste this link into your browser, replacing `YOUR_APPLICATION_ID` with
+   the Application ID you copied above:
+   ```
+   https://discord.com/oauth2/authorize?client_id=YOUR_APPLICATION_ID&scope=bot+applications.commands&permissions=283803503616
+   ```
+   For example: `...authorize?client_id=123456789012345678&scope=bot+applications.commands&permissions=...`.
+   Choose your server, check the permission list and click **Authorize**. You need the *Manage Server*
+   permission on that Discord server.
+
+   The link grants exactly what the bot needs: View Channels, Send Messages, Embed Links, Attach Files, Read
+   Message History, Send Messages in Threads, Manage Roles (to give the Player role), Manage Events (for
+   scheduled events) and Change Nickname (to use your `[identity]` name). **Don't give it Administrator.**
+6. **Two channel-specific permissions.** In your Discord server, open each channel's settings
+   (⚙️ **Edit Channel → Permissions**), add the bot, and allow:
+   - on the ticket **forum** channel: *Manage Threads* (to archive, lock and tag posts) and *Manage Channel* (to
+     create the Open / Claimed / Closed tags once),
+   - on the player-counter **voice channel**: *Manage Channel* (to rename it).
+7. **Role order.** In **Server Settings → Roles**, drag the bot's role **above** the Player role. Discord only
+   lets a bot hand out roles that are below its own.
 
 ### 3. Create a database user
 Don't use your `mangos`/root login. [`docs/database-user.sql`](docs/database-user.sql) creates a user that can
@@ -119,9 +142,24 @@ machine, or reach it through an SSH tunnel or VPN.
 cp config.example.toml config.toml      # Windows: copy config.example.toml config.toml
 cp .env.example .env                    # Windows: copy .env.example .env
 ```
-Put the token and passwords in `.env`. Fill in `config.toml`: your server ID, the bot's `[identity]`, channels,
-roles and realms. Every setting is explained in the file. Then validate it and start the bot (with the virtual
-environment active):
+**`.env` holds the secrets.** Open it in a text editor and fill in the values, without quotes:
+```ini
+DISCORD_TOKEN=the-bot-token-from-section-2
+MANGOS_DB_PASSWORD=the-database-password-from-section-3
+SOAP_USERNAME=DISCORDBOT
+SOAP_PASSWORD=the-soap-account-password-from-section-4
+```
+Leave the SOAP lines empty if you skipped section 4.
+
+**`config.toml` holds everything else.** Every setting is explained in the file. The ones you must set:
+- **`[bot] guild_id`**: your Discord server's ID. In Discord, open **User Settings → Advanced** and turn on
+  **Developer Mode**. Then right-click your server's icon and choose **Copy Server ID**. Use the same
+  right-click → **Copy ID** to get the channel and role IDs for `[channels]` and `[roles]`.
+- **`[database]`** and **`[[realm]]`**: your database user and names, and your realm, to match section 3.
+- **`[identity]`** and **`[server]`**: what the bot calls itself, and your server's name, realmlist and
+  client version.
+
+Then validate the config and start the bot (with the virtual environment active):
 
 ```bash
 python main.py --check
