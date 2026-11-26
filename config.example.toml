@@ -1,0 +1,141 @@
+# MaNGOS-Based Server Discord Admin — example configuration
+#
+# 1. Copy this file to config.toml (config.toml is git-ignored).
+# 2. Copy .env.example to .env and put your secrets there.
+# 3. Run `python main.py --check` to validate, then `python main.py`.
+#
+# Any value can be written as "env:NAME" to read it from the environment or .env.
+# Keep the bot token and every password out of this file.
+# Discord IDs: enable Developer Mode (User Settings > Advanced), then right-click > Copy ID.
+
+[bot]
+token = "env:DISCORD_TOKEN"
+guild_id = 0                  # your Discord server's ID (required)
+data_dir = "data"             # SQLite state, logs and icon cache
+log_level = "info"            # debug | info | warning | error
+
+# How the bot presents itself. Make it yours: "Ask Stormhold", "Oracle of Nethervale"...
+[identity]
+name = "Ask MaNGOS"           # embed footers, flavour text, and the bot's nickname (max 32 characters)
+set_nickname = true           # rename the bot to `name` in your server on startup (needs Change Nickname)
+avatar = ""                   # optional .png/.jpg/.gif path; uploaded once whenever the file changes
+color = "#2ECC71"             # accent colour for embeds
+
+[server]
+name = "My MaNGOS Server"
+website_url = ""              # adds a "Website" button to the panel
+banner_url = ""               # image shown on the registration panel
+realmlist = "logon.example.com"
+client_version = "1.12.1"     # shown on the panel and in /connect
+client_download_url = ""
+realmd_address = ""           # e.g. "127.0.0.1:3724" to show whether logins work
+
+[roles]
+admin = []                    # role IDs allowed to use /admin (Discord administrators always can)
+staff = []                    # role IDs allowed to use /mod and handle tickets
+player = 0                    # role given after registering or linking (0 = none)
+
+[channels]
+announcements = 0             # /admin announce posts here
+status = 0                    # server down/up alerts and restart notices
+audit_log = 0                 # private staff channel: registrations, bans, ticket replies...
+events = 0                    # world event announcements (falls back to announcements)
+tickets_forum = 0             # a *forum* channel; each GM ticket becomes a post
+player_count_voice = 0        # optional voice channel renamed to "🟢 Online: 42"
+
+# Login (realmd) database. Use a dedicated MySQL user; see docs/database-user.sql.
+[database]
+host = "127.0.0.1"
+port = 3306
+user = "discordbot"
+password = "env:MANGOS_DB_PASSWORD"
+realmd = "realmd"
+pool_size = 5
+
+# mangosd SOAP. Needs SOAP.Enabled = 1 in mangosd.conf and an account with gmlevel 3.
+# Used for ticket replies, in-game announcements, kicks, bans and restarts.
+# Keep SOAP.IP = 127.0.0.1 and run the bot on the same machine (or tunnel to it).
+[soap]
+enabled = false
+url = "http://127.0.0.1:7878/"
+username = "env:SOAP_USERNAME"
+password = "env:SOAP_PASSWORD"
+timeout = 10
+
+# One [[realm]] block per realm in your realmlist table.
+[[realm]]
+id = 1                        # realmlist.id
+name = "MaNGOS"                # realmlist.name
+core = "zero"                 # zero | one | two | three | four
+characters_db = "character0"
+world_db = "mangos0"
+world_address = ""            # host:port for up/down checks; empty = use realmlist.address/port
+# Optional link overrides ({id} is replaced). Defaults point at Wowhead for your expansion.
+# item_link = "https://www.wowhead.com/classic/item={id}"
+# spell_link = "https://www.wowhead.com/classic/spell={id}"
+# Optional per-realm overrides of [database] or [soap]:
+# [realm.database]
+# host = "10.0.0.2"
+# [realm.soap]
+# url = "http://10.0.0.2:7878/"
+
+[registration]
+enabled = true
+method = "database"           # "database" (recommended) or "soap" (mangosd logs SOAP passwords!)
+password_mode = "user"        # "user" = player picks it; "generated" = bot creates a strong one
+# expansion = 0               # defaults to the first realm's core (0 Zero ... 4 Four)
+min_password_length = 8       # 4-16 (16 is the game client's maximum)
+max_accounts_per_user = 1     # registered + linked accounts per Discord user
+min_account_age_days = 7      # Discord account age required (stops throwaway alts)
+min_member_age_minutes = 10   # time since joining your Discord
+cooldown_minutes = 5          # between registration attempts per user
+global_limit_per_hour = 30    # pauses sign-ups (and alerts the audit log) during raids
+required_role = 0             # e.g. a "Verified" role; 0 = anyone
+allow_linking = true          # /account link for accounts created before the bot
+allow_gm_accounts = false     # never let Discord manage accounts with gmlevel > 0
+# reserved_names = ["ADMIN", "GM", "STAFF"]
+
+[status]
+enabled = true
+interval_seconds = 60
+presence = true               # "Watching 42 adventurers online"
+alerts = true                 # posts to channels.status when a realm goes down or comes back
+down_after_failures = 2       # consecutive failed checks before reporting "down"
+voice_counter_minutes = 10    # 0 = off, otherwise 10+ (Discord allows 2 renames per 10 minutes)
+show_online_names = false     # list character names in /online (privacy!)
+
+[tickets]
+enabled = true
+poll_seconds = 60
+mention_staff = true          # ping the staff roles when a new ticket arrives
+auto_archive_minutes = 4320   # 60 | 1440 | 4320 | 10080
+
+[events]
+enabled = true
+only_holidays = true          # only events with a holiday id (Midsummer, Hallow's End, ...)
+include = []                  # game_event entries to announce anyway (e.g. [4, 5] Darkmoon Faire)
+exclude = []                  # entries never to announce
+reminder_hours = 24           # "ends soon" reminder; 0 = off
+start_grace_hours = 24        # don't announce starts older than this (e.g. after downtime)
+discord_scheduled_events = true   # create Discord Scheduled Events (needs Manage Events)
+schedule_days_ahead = 14
+mention_role = 0              # role to ping when an event starts
+timezone = ""                 # the world server's time zone, e.g. "Europe/London"; empty = this machine's
+
+[armory]
+enabled = true
+privacy = "public"            # "public" (players can opt out) or "opt_in" (players must opt in)
+hide_gm_characters = true
+render_image = true           # paper-doll card image
+# Item icons: point dbc_path at the server's extracted dbc folder (it reads ItemDisplayInfo.dbc).
+dbc_path = ""
+icon_field = "auto"
+# Where icon images come from ({icon} is e.g. "inv_sword_39"). Set "" to disable,
+# or point it at your own copy of the icons.
+icon_url = "https://wow.zamimg.com/images/wow/icons/large/{icon}.jpg"
+font_path = ""                # optional .ttf for the card; empty = built-in font
+
+[leaderboard]
+enabled = true
+size = 10
+show_gold = true
