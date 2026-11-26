@@ -8,6 +8,7 @@ __pycache__/
 config.toml
 secret.ini
 config.ini
+*.local.sql
 
 # Runtime state (SQLite, logs, icon cache).
 data/
