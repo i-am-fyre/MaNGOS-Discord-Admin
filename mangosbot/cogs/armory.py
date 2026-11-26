@@ -194,7 +194,8 @@ class ArmoryCog(discord.Cog, name="Armory"):
             if row is None:
                 await ui.reply(interaction, embed=ui.error("Unknown item", f"Item #{entry} isn't in the world database."))
                 return
-            await ui.reply(interaction, embed=items.tooltip_embed(row, realm, self.bot.icons.url_for(row)))
+            await ui.reply(interaction, embed=items.tooltip_embed(row, realm, self.bot.icons.url_for(row),
+                                                                  self.bot.spells))
         except Exception as exc:
             await ui.report_failure(interaction, exc, "item tooltip")
 

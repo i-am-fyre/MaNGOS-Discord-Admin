@@ -128,6 +128,11 @@ account.
    - on the ticket **forum** channel: *Manage Threads* (to archive, lock and tag posts) and *Manage Channel* (to
      create the Open / Claimed / Closed tags once),
    - on the player-counter **voice channel**: *Manage Channel* (to rename it).
+
+   **Make the ticket forum staff-only.** Its posts contain what players write in their GM tickets. In its
+   permissions, deny *View Channel* to @everyone and allow it for your staff role and the bot. The channel
+   must be of type **Forum**, which Discord only offers on Community servers (**Server Settings → Enable
+   Community**).
 7. **Role order.** In **Server Settings → Roles**, drag the bot's role **above** the Player role. Discord only
    lets a bot hand out roles that are below its own.
 
@@ -209,6 +214,16 @@ python main.py
 
 In Discord, run **`/admin check`**, then **`/admin panel`** in your registration channel.
 
+**Armory icons and item effects (optional).** Set `[armory] dbc_path` to your server's extracted `dbc` folder:
+the `dbc` folder inside the folder that `DataDir` in `mangosd.conf` points to. Use forward slashes, for example
+`dbc_path = "E:/MaNGOS/data/dbc"`. (In TOML, a backslash inside double quotes starts an escape code.) From
+that folder the bot reads:
+- `ItemDisplayInfo.dbc`, for each item's icon. Icon images are downloaded from `armory.icon_url` (by default
+  Wowhead's icon CDN) and cached in `data/icons`. Set `icon_url = ""` to turn downloads off.
+- `Spell.dbc` (with `SpellDuration.dbc` and `SpellRadius.dbc`), so tooltips show the real effect text, such as
+  *"Equip: Increases damage and healing done by magical spells and effects by up to 20."* This works for
+  Zero, One and Two. Three and Four show a link to the spell instead.
+
 ### 6. Keep it running
 **Linux (systemd).** Save this as `/etc/systemd/system/mangos-discord-admin.service`, adjusting the user and
 paths. Then run `sudo systemctl enable --now mangos-discord-admin`.
@@ -243,10 +258,6 @@ pip install -r requirements.txt   # with the virtual environment active
 Then restart the bot. Clones made under the old *MaNGOS-Discord-Register-Bot* name still work, because GitHub
 redirects them. To point yours at the new name, run
 `git remote set-url origin https://github.com/i-am-fyre/MaNGOS-Discord-Admin.git`.
-
-**Armory icons (optional):** set `armory.dbc_path` to the server's extracted `dbc` folder. The bot reads
-`ItemDisplayInfo.dbc` to find each item's icon name. Icon images are downloaded from `armory.icon_url` (by
-default Wowhead's icon CDN) and cached in `data/icons`. Set `icon_url = ""` to turn downloads off.
 
 ## Commands
 

@@ -47,6 +47,22 @@ class DbcFile:
         offset = _HEADER.size + record * self.record_size + field * 4
         return struct.unpack_from("<I", self._data, offset)[0]
 
+    def i32(self, record: int, field: int) -> int:
+        offset = _HEADER.size + record * self.record_size + field * 4
+        return struct.unpack_from("<i", self._data, offset)[0]
+
+    def f32(self, record: int, field: int) -> float:
+        offset = _HEADER.size + record * self.record_size + field * 4
+        return struct.unpack_from("<f", self._data, offset)[0]
+
+    def first_string(self, record: int, field: int, slots: int) -> str:
+        """First non-empty string of a localised column (e.g. Name_lang[8])."""
+        for slot in range(slots):
+            text = self.string(record, field + slot)
+            if text:
+                return text
+        return ""
+
     def string(self, record: int, field: int) -> str:
         offset = self._strings_at + self.u32(record, field)
         if offset >= self._strings_end:
